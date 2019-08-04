@@ -72,12 +72,21 @@ defmodule Sentry.Sources do
     |> Path.wildcard()
     |> exclude_files(exclude_patterns)
     |> Enum.reduce(%{}, fn path, acc ->
-      key = Path.relative_to(path, root_path)
       value = source_to_lines(File.read!(path))
+
+      key =
+        path
+        |> fix_path()
+        |> Path.relative_to(root_path)
 
       Map.put(acc, key, value)
     end)
   end
+
+  defp fix_path(path) when is_binary(path), do: path |> Path.split() |> fix_path()
+  defp fix_path([]), do: ""
+  defp fix_path(["lib" | _] = path), do: path |> Path.join()
+  defp fix_path([_h | t]), do: t |> fix_path()
 
   @doc """
   Given the source code map, a filename and a line number, this method retrieves the source code context.
